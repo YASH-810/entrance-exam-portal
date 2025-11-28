@@ -1,35 +1,51 @@
 import { NextResponse } from "next/server";
-import { auth } from "../../../../lib/firebase";
+import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { authAdmin, dbAdmin } from "../../../../lib/firebase-admin";
+import { authAdmin, dbAdmin } from "@/lib/firebase-admin";
 
 export async function POST(req: Request) {
   const { email, password } = await req.json();
 
   try {
-    // Firebase client login
-    const res = await signInWithEmailAndPassword(auth, email, password);
-    const user = res.user;
+    // Login using Firebase Client SDK
+    const userCred = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCred.user;
 
-    // fresh token with custom claims
+    // Generate token (forces refresh to get custom claims)
     const token = await user.getIdToken(true);
 
-    // verify token using admin SDK
+    // Decode with Firebase Admin to read custom claims
     const decoded = await authAdmin.verifyIdToken(token);
+    const role = decoded.role || "student";
 
-    // set secure HTTPONLY cookie
-    const response = NextResponse.json({ message: "Login successful", role: decoded.role });
+    // Response body
+    const res = NextResponse.json({ message: "Login successful", role });
 
-    response.cookies.set("token", token, {
-      httpOnly: true,
+    // Secure cookie: token (httpOnly)
+    res.cookies.set("token", token, {
+      httpOnly: true,     // cannot be accessed in JS
+      secure: true,       // required for vercel
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24, // 1 day
+    });
+
+    // Non-httpOnly cookie: role → proxy.ts will read this
+    res.cookies.set("role", role, {
+      httpOnly: false,     // readable by proxy
       secure: true,
       sameSite: "strict",
       path: "/",
+      maxAge: 60 * 60 * 24,
     });
 
-    return response;
+    return res;
 
-  } catch (err) {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 400 });
+  } catch (err: any) {
+    console.error("LOGIN ERROR:", err);
+    return NextResponse.json(
+      { error: "Invalid email or password" },
+      { status: 400 }
+    );
   }
 }
