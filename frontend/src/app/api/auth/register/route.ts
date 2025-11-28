@@ -1,32 +1,43 @@
 import { NextResponse } from "next/server";
-import { auth } from "../../../../lib/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { authAdmin, dbAdmin } from "../../../../lib/firebase-admin";
+import { authAdmin, dbAdmin } from "@/lib/firebase-admin";  // admin SDK only
+import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
-  const { name, number, email, password } = await req.json();
-
   try {
-    // Create user in Firebase Authentication
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCred.user;
+    const { name, number, email, password } = await req.json();
 
-    // Save user to Firestore using ADMIN (server-side secure)
-    await dbAdmin.collection("users").doc(user.uid).set({
+    if (!name || !number || !email || !password) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    // 1️⃣ Create user using ADMIN SDK (server environment)
+    const userRecord = await authAdmin.createUser({
+      email,
+      password,
+      displayName: name,
+    });
+
+    // 2️⃣ Set custom claims
+    await authAdmin.setCustomUserClaims(userRecord.uid, { role: "student" });
+
+    // 3️⃣ Save user data to Firestore
+    await dbAdmin.collection("users").doc(userRecord.uid).set({
+      uid: userRecord.uid,
       name,
       number,
       email,
       role: "student",
+      createdAt: Timestamp.now(),
     });
 
-    // Set Firebase custom claim
-    await authAdmin.setCustomUserClaims(user.uid, { role: "student" });
+    // 4️⃣ Return OK
+    return NextResponse.json({ message: "Student registered successfully", uid: userRecord.uid });
 
-    return NextResponse.json({ message: "Student registered" });
   } catch (err: any) {
-    console.log("REGISTER ERROR:", err);
+    console.error("REGISTER ERROR:", err);
+
     return NextResponse.json(
-      { error: err.message },
+      { error: err.message ?? "Something went wrong" },
       { status: 500 }
     );
   }

@@ -6,9 +6,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-// Dummy exam data (Later you will fetch from API)
+// Define allowed subjects
+type Subject = "Physics" | "Chemistry" | "Mathematics";
+
+// Dummy exam data
 const mockExam = {
   title: "CET Mock Test",
+  timeLimit: 0.1,
+
   subjects: {
     Physics: [
       {
@@ -37,34 +42,33 @@ const mockExam = {
       },
     ],
   },
-  timeLimit: 60, // minutes
 };
 
-export default function ExamPage({ params }: any) {
+export default function ExamPage({ params }: { params: { examId: string } }) {
   const { examId } = params;
 
-  // Active subject & question index
-  const subjectList = Object.keys(mockExam.subjects);
-  const [activeSubject, setActiveSubject] = useState(subjectList[0]);
+  const subjectList = Object.keys(mockExam.subjects) as Subject[];
+
+  const [activeSubject, setActiveSubject] = useState<Subject>("Physics");
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Question/answers tracking
+  // Data extraction
   const questions = mockExam.subjects[activeSubject];
   const currentQuestion = questions[currentIndex];
 
-  const [answers, setAnswers] = useState<any>({});
-  const [visited, setVisited] = useState<any>({});
-  const [marked, setMarked] = useState<any>({});
+  // State tracking
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [visited, setVisited] = useState<Record<string, boolean>>({});
+  const [marked, setMarked] = useState<Record<string, boolean>>({});
 
-  // Timer (in seconds)
+  // Timer
   const [timeLeft, setTimeLeft] = useState(mockExam.timeLimit * 60);
 
-  // TIMER LOGIC
   useEffect(() => {
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(t);
+          clearInterval(timer);
           alert("Time Over! Auto-submit triggered.");
           return 0;
         }
@@ -72,7 +76,7 @@ export default function ExamPage({ params }: any) {
       });
     }, 1000);
 
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, []);
 
   const formattedTime =
@@ -80,39 +84,21 @@ export default function ExamPage({ params }: any) {
     ":" +
     String(timeLeft % 60).padStart(2, "0");
 
-  // When switching questions
-  const goToQuestion = (index: number) => {
-    setVisited((prev: any) => ({
-      ...prev,
-      [`${activeSubject}-${currentIndex}`]: true,
-    }));
-    setCurrentIndex(index);
+  // Navigation
+  const goToQuestion = (i: number) => {
+    const key = `${activeSubject}-${currentIndex}`;
+    setVisited((prev) => ({ ...prev, [key]: true }));
+    setCurrentIndex(i);
   };
 
   const saveAnswer = (option: string) => {
-    setAnswers((prev: any) => ({
-      ...prev,
-      [`${activeSubject}-${currentIndex}`]: option,
-    }));
+    const key = `${activeSubject}-${currentIndex}`;
+    setAnswers((prev) => ({ ...prev, [key]: option }));
   };
 
   const toggleMark = () => {
-    setMarked((prev: any) => ({
-      ...prev,
-      [`${activeSubject}-${currentIndex}`]: !prev[`${activeSubject}-${currentIndex}`],
-    }));
-  };
-
-  const nextQuestion = () => {
-    if (currentIndex < questions.length - 1) {
-      goToQuestion(currentIndex + 1);
-    }
-  };
-
-  const prevQuestion = () => {
-    if (currentIndex > 0) {
-      goToQuestion(currentIndex - 1);
-    }
+    const key = `${activeSubject}-${currentIndex}`;
+    setMarked((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -147,24 +133,26 @@ export default function ExamPage({ params }: any) {
 
       {/* MAIN */}
       <div className="flex flex-1">
-        {/* LEFT PANEL */}
+        {/* LEFT */}
         <div className="flex-1 p-6">
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">
               Question {currentIndex + 1}
             </h2>
 
-            <p className="text-lg font-medium mb-6">{currentQuestion.question}</p>
+            <p className="text-lg font-medium mb-6">
+              {currentQuestion.question}
+            </p>
 
+            {/* OPTIONS */}
             <RadioGroup
               value={
-                answers[`${activeSubject}-${currentIndex}`] ??
-                undefined
+                answers[`${activeSubject}-${currentIndex}`] ?? undefined
               }
-              onValueChange={(v) => saveAnswer(v)}
+              onValueChange={saveAnswer}
               className="space-y-3"
             >
-              {currentQuestion.options.map((opt: string) => (
+              {currentQuestion.options.map((opt) => (
                 <label
                   key={opt}
                   className="flex items-center gap-3 border p-3 rounded-lg cursor-pointer hover:bg-gray-100"
@@ -175,6 +163,7 @@ export default function ExamPage({ params }: any) {
               ))}
             </RadioGroup>
 
+            {/* ACTIONS */}
             <div className="flex gap-4 mt-6">
               <Button variant="outline" onClick={toggleMark}>
                 {marked[`${activeSubject}-${currentIndex}`]
@@ -182,45 +171,57 @@ export default function ExamPage({ params }: any) {
                   : "Mark for Review"}
               </Button>
 
-              <Button variant="outline" onClick={() => saveAnswer("")}>
+              <Button
+                variant="outline"
+                onClick={() => saveAnswer("")}
+              >
                 Clear Response
               </Button>
             </div>
 
+            {/* NAVIGATION */}
             <div className="flex justify-between mt-8">
-              <Button variant="outline" onClick={prevQuestion}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  currentIndex > 0 && goToQuestion(currentIndex - 1)
+                }
+              >
                 Previous
               </Button>
-              <Button className="bg-blue-600 text-white" onClick={nextQuestion}>
+
+              <Button
+                className="bg-blue-600 text-white"
+                onClick={() =>
+                  currentIndex < questions.length - 1 &&
+                  goToQuestion(currentIndex + 1)
+                }
+              >
                 Save & Next
               </Button>
             </div>
           </Card>
         </div>
 
-        {/* RIGHT QUESTION LIST */}
+        {/* RIGHT PALETTE */}
         <div className="w-72 p-6">
           <Card className="p-4">
             <h3 className="font-semibold mb-4">Choose a Question</h3>
 
             <div className="grid grid-cols-5 gap-2">
-              {questions.map((q, i) => {
+              {questions.map((_, i) => {
                 const key = `${activeSubject}-${i}`;
-                const isAnswered = answers[key];
-                const isMarked = marked[key];
-                const isVisited = visited[key];
-
                 return (
                   <button
                     key={i}
                     onClick={() => goToQuestion(i)}
                     className={cn(
                       "w-10 h-10 rounded-md text-sm font-semibold",
-                      isMarked
+                      marked[key]
                         ? "bg-yellow-400 text-white"
-                        : isAnswered
+                        : answers[key]
                         ? "bg-blue-600 text-white"
-                        : isVisited
+                        : visited[key]
                         ? "bg-gray-300"
                         : "bg-gray-200"
                     )}

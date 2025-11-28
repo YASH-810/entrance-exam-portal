@@ -1,67 +1,42 @@
-import { authAdmin } from "./src/lib/firebase-admin";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function handler(request: Request, context: any) {
-  const url = new URL(request.url);
-  const pathname = url.pathname;
+export default async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
 
-  console.log("🔥 PROXY RUNNING:", pathname);
+  console.log("🔥 PROXY:", path);
 
   // Allow public routes
   if (
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/public") ||
-    pathname === "/favicon.ico"
+    path.startsWith("/auth") ||
+    path.startsWith("/_next") ||
+    path.startsWith("/public") ||
+    path === "/favicon.ico"
   ) {
-    return;
+    return NextResponse.next();
   }
 
-  // Routes requiring login
+  // Protect these routes
   const protectedRoutes = ["/dashboard", "/exam"];
+  const mustProtect = protectedRoutes.some((r) => path.startsWith(r));
 
-  const mustProtect = protectedRoutes.some((r) =>
-    pathname.startsWith(r)
-  );
+  if (!mustProtect) return NextResponse.next();
 
-  if (!mustProtect) return;
-
-  // Read cookie
-  const token = context.cookies.get("token")?.value;
+  // Read cookies
+  const token = request.cookies.get("token")?.value;
 
   if (!token) {
-    console.log("❌ No token, redirecting to login");
-    return Response.redirect(new URL("/auth/login", request.url));
+    console.log("❌ No token, redirecting...");
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  let decoded;
-  try {
-    decoded = await authAdmin.verifyIdToken(token);
-  } catch (err) {
-    console.log("❌ Invalid token:", err);
-    return Response.redirect(new URL("/auth/login", request.url));
-  }
+  // 🚫 DO NOT verify token inside proxy — Edge runtime does not support Firebase Admin
+  // The API will verify the token and enforce the correct role.
 
-  const role = decoded.role;
-  console.log("👤 ROLE:", role);
-
-  // ===== ROLE RESTRICTIONS =====
-
-  // Admin only
-  if (pathname.startsWith("/dashboard/admin") && role !== "admin")
-    return Response.redirect(new URL("/unauthorized", request.url));
-
-  // Faculty only
-  if (pathname.startsWith("/dashboard/faculty") && role !== "faculty")
-    return Response.redirect(new URL("/unauthorized", request.url));
-
-  // Student dashboard only
-  if (pathname.startsWith("/dashboard/student") && role !== "student")
-    return Response.redirect(new URL("/unauthorized", request.url));
-
-  // Student exam only
-  if (pathname.startsWith("/exam") && role !== "student")
-    return Response.redirect(new URL("/unauthorized", request.url));
-
-  // allow
-  return;
+  return NextResponse.next();
 }
+
+// Apply to these routes
+export const config = {
+  matcher: ["/dashboard/:path*", "/exam/:path*"],
+};
