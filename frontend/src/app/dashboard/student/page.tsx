@@ -10,6 +10,7 @@ import { Clock, Users, Star } from "lucide-react";
 export default function StudentDashboard() {
   const [exams, setExams] = useState<any[]>([]);
 
+  
   useEffect(() => {
     // 🔥 Dummy JSON (UI testing only)
     const dummyExams = [

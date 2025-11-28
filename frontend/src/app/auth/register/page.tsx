@@ -14,7 +14,7 @@ export default function Register() {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [number, setNumber] = useState("");  // 🔥 use number
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,6 @@ export default function Register() {
       e.preventDefault();
       setLoading(true);
 
-      // 🔥 Using toast.promise for loading → success → error
       await toast.promise(
         new Promise(async (resolve, reject) => {
           try {
@@ -33,7 +32,7 @@ export default function Register() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 name,
-                phone,
+                number,   // 🔥 FIXED: send number (not phone)
                 email,
                 password,
               }),
@@ -51,7 +50,6 @@ export default function Register() {
             setTimeout(() => {
               router.push("/auth/login");
             }, 1000);
-
           } catch (err) {
             reject("Network error");
           } finally {
@@ -65,7 +63,7 @@ export default function Register() {
         }
       );
     },
-    [name, phone, email, password, router]
+    [name, number, email, password, router]
   );
 
   return (
@@ -101,13 +99,13 @@ export default function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="number">Phone Number</Label>
                 <Input
-                  id="phone"
+                  id="number"
                   type="tel"
                   placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
                   required
                 />
               </div>

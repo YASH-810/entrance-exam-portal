@@ -30,25 +30,21 @@ export default function Login() {
 
             const data = await res.json();
 
-            if (!res.ok) {
-              reject(data.error || "Invalid credentials.");
-              return;
-            }
+            if (!res.ok) return reject(data.error || "Invalid credentials");
 
-            // redirect based on role
             if (data.role === "admin") router.push("/dashboard/admin");
             else if (data.role === "faculty") router.push("/dashboard/faculty");
             else if (data.role === "student") router.push("/dashboard/student");
-            else reject("Unknown role.");
+            else return reject("Unknown role");
 
             resolve("success");
-          } catch (err) {
-            reject("Something went wrong.");
+          } catch {
+            reject("Something went wrong");
           }
         }),
         {
           loading: "Logging in...",
-          success: "Login successful!",
+          success: "Logged in successfully!",
           error: (msg) => msg,
         }
       );
@@ -65,56 +61,42 @@ export default function Login() {
       <div className="w-full max-w-md">
         <Card className="rounded-3xl bg-white/90 text-foreground backdrop-blur shadow-xl border">
           <CardContent className="p-8">
-            
+
             <div className="text-center space-y-3">
-              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+              <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
                 <GraduationCap className="h-6 w-6" />
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Entrance Exam</h1>
-              <p className="text-sm text-muted-foreground">Empowering Students to Succeed</p>
+              <h1 className="text-2xl font-extrabold">Entrance Exam</h1>
+              <p className="text-sm text-muted-foreground">Login to continue</p>
             </div>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-5">
-              
-              {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
+                <Label>Email</Label>
+                <Input 
+                  type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                 />
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
+                <Label>Password</Label>
+                <Input 
+                  type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
                 />
               </div>
 
-              <Button type="submit" className="w-full h-11 font-semibold">
+              <Button className="w-full h-11 font-semibold">
                 Login
               </Button>
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <Link href="/auth/register" className="hover:underline">
-                  Register
-                </Link>
-                <Link href="/auth/forgot-password" className="hover:underline">
-                  Forgot Password?
-                </Link>
+              <div className="flex justify-between text-xs">
+                <Link href="/auth/register">Register</Link>
+                <Link href="/auth/forgot-password">Forgot Password?</Link>
               </div>
-
             </form>
 
           </CardContent>

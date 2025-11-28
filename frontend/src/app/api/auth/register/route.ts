@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authAdmin, dbAdmin } from "@/lib/firebase-admin";  // admin SDK only
+import { authAdmin, dbAdmin } from "@/lib/firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
@@ -10,19 +10,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    // 1️⃣ Create user using ADMIN SDK (server environment)
-    const userRecord = await authAdmin.createUser({
+    // Create user using ADMIN SDK
+    const user = await authAdmin.createUser({
       email,
       password,
       displayName: name,
     });
 
-    // 2️⃣ Set custom claims
-    await authAdmin.setCustomUserClaims(userRecord.uid, { role: "student" });
+    // Add custom claim role
+    await authAdmin.setCustomUserClaims(user.uid, { role: "student" });
 
-    // 3️⃣ Save user data to Firestore
-    await dbAdmin.collection("users").doc(userRecord.uid).set({
-      uid: userRecord.uid,
+    // Save to Firestore
+    await dbAdmin.collection("users").doc(user.uid).set({
+      uid: user.uid,
       name,
       number,
       email,
@@ -30,12 +30,13 @@ export async function POST(req: Request) {
       createdAt: Timestamp.now(),
     });
 
-    // 4️⃣ Return OK
-    return NextResponse.json({ message: "Student registered successfully", uid: userRecord.uid });
+    return NextResponse.json({
+      message: "Student registered successfully",
+      uid: user.uid,
+    });
 
   } catch (err: any) {
     console.error("REGISTER ERROR:", err);
-
     return NextResponse.json(
       { error: err.message ?? "Something went wrong" },
       { status: 500 }
