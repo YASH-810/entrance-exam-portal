@@ -1,52 +1,45 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import QuestionsPanel from "@/components/exam-builder/QuestionsPanel";
+import SettingsPanel from "@/components/exam-builder/SettingsPanel";
 
-export default function CreateExamPage() {
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [duration, setDuration] = useState("");
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-
-    await fetch("/api/admin/create-exam", {
-      method: "POST",
-      body: JSON.stringify({ title, date, duration }),
-    });
-
-    alert("Exam Created!");
-  };
-
+export default function ExamCreatePage() {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold mb-6">Create Exam</h1>
+    <div className="min-h-screen bg-gray-50">
 
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-        <Input
-          placeholder="Exam Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+      {/* TOP HEADER */}
+      <div className="h-16 bg-white border-b flex items-center justify-between px-6">
+        <h1 className="text-xl font-semibold">Create Exam</h1>
 
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <div className="flex gap-3">
+          <button className="px-4 py-2 rounded-md border">Preview</button>
+          <button className="px-4 py-2 rounded-md bg-blue-600 text-white">
+            Save
+          </button>
+        </div>
+      </div>
 
-        <Input
-          placeholder="Duration (minutes)"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-        />
+      {/* MAIN TABS */}
+      <Tabs defaultValue="questions" className="w-full">
+        <div className="bg-white border-b px-6">
+          <TabsList>
+            <TabsTrigger value="questions">Questions</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+        </div>
 
-        <Button type="submit" className="w-full">
-          Create Exam
-        </Button>
-      </form>
+        <div className="p-6">
+          <TabsContent value="questions">
+            <QuestionsPanel />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <SettingsPanel />
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   );
 }

@@ -12,7 +12,7 @@ type Subject = "Physics" | "Chemistry" | "Mathematics";
 // Dummy exam data
 const mockExam = {
   title: "CET Mock Test",
-  timeLimit: 0.1,
+  timeLimit: 10,
 
   subjects: {
     Physics: [
